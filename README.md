@@ -3,18 +3,6 @@
 ## Overview
 A robust FastAPI application for managing cryptocurrency data with real-time updates from CoinGecko.
 
-## Features
-- Real-time cryptocurrency data management
-- CoinGecko API integration
-- Background data refresh
-- CRUD operations
-- Streamlit UI for easy interaction
-
-## Prerequisites
-- Python 3.10
-- PostgreSQL
-- pip
-
 ## Installation
 1. Clone the repository
 2. Create a virtual environment
