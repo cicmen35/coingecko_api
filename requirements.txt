@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+alembic
+pydantic
+requests
+apscheduler
+python-dotenv
+
+# development and testing
+pytest
+httpx
+loguru
+
+streamlit
+pandas
