@@ -5,7 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
 
-from .database import engine, Base, get_db
+from .db import engine, Base, get_db
 from .models import CryptocurrencyDB
 from .schemas import CryptocurrencyCreate, CryptocurrencyUpdate, CryptocurrencyResponse
 from .services.coingecko_service import CoinGeckoService
@@ -116,41 +116,56 @@ def create_cryptocurrency(
         CryptocurrencyDB: Created cryptocurrency
     """
     try:
-        # Validate cryptocurrency details using CoinGecko
-        validated_crypto = CoinGeckoService.validate_cryptocurrency(
-            symbol=cryptocurrency.symbol, 
-            current_price=cryptocurrency.current_price, 
-            market_cap=cryptocurrency.market_cap
-        )
-        
-        if not validated_crypto:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cryptocurrency symbol {cryptocurrency.symbol} not found or invalid"
+        # Check if the cryptocurrency is a custom one or needs CoinGecko validation
+        if not cryptocurrency.coingecko_id:
+            # Validate custom cryptocurrency requires price and market cap
+            if not (cryptocurrency.current_price and cryptocurrency.market_cap):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Custom cryptocurrencies must provide current price and market cap"
+                )
+            
+            # Create new custom cryptocurrency
+            new_crypto = CryptocurrencyDB(
+                name=cryptocurrency.name,
+                symbol=cryptocurrency.symbol,
+                current_price=cryptocurrency.current_price,
+                market_cap=cryptocurrency.market_cap
             )
-        
-        # Check for existing cryptocurrency
-        existing_crypto = db.query(CryptocurrencyDB).filter(
-            or_(
-                CryptocurrencyDB.symbol == validated_crypto['symbol'], 
-                CryptocurrencyDB.name == validated_crypto['name']
+        else:
+            # Validate cryptocurrency details using CoinGecko
+            validated_crypto = CoinGeckoService.validate_cryptocurrency(
+                symbol=cryptocurrency.symbol, 
+                current_price=cryptocurrency.current_price, 
+                market_cap=cryptocurrency.market_cap
             )
-        ).first()
-        
-        if existing_crypto:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Cryptocurrency with symbol {validated_crypto['symbol']} already exists"
+            
+            if not validated_crypto:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Cryptocurrency symbol {cryptocurrency.symbol} not found or invalid"
+                )
+            
+            # Check for existing cryptocurrency
+            existing_crypto = db.query(CryptocurrencyDB).filter(
+                (CryptocurrencyDB.symbol == validated_crypto['symbol']) | 
+                (CryptocurrencyDB.name == validated_crypto['name'])
+            ).first()
+            
+            if existing_crypto:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Cryptocurrency with symbol {validated_crypto['symbol']} already exists"
+                )
+            
+            # Create new cryptocurrency from CoinGecko
+            new_crypto = CryptocurrencyDB(
+                name=validated_crypto['name'],
+                symbol=validated_crypto['symbol'],
+                coingecko_id=validated_crypto.get('coingecko_id'),
+                current_price=validated_crypto['current_price'],
+                market_cap=validated_crypto['market_cap']
             )
-        
-        # Create new cryptocurrency
-        new_crypto = CryptocurrencyDB(
-            name=validated_crypto['name'],
-            symbol=validated_crypto['symbol'],
-            coingecko_id=validated_crypto.get('coingecko_id'),
-            current_price=validated_crypto['current_price'],
-            market_cap=validated_crypto['market_cap']
-        )
         
         # Add and commit
         db.add(new_crypto)

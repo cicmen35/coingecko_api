@@ -7,23 +7,53 @@ class CryptocurrencyBase(BaseModel):
     """
     name: str = Field(..., min_length=1, max_length=100)
     symbol: str = Field(..., min_length=1, max_length=10)
-    current_price: float = Field(..., gt=0)
-    market_cap: float = Field(..., gt=0)
+    coingecko_id: Optional[str] = None
 
-    @validator('symbol')
-    def validate_symbol(cls, symbol):
-        """
-        Convert symbol to lowercase for consistency
-        """
-        return symbol.lower()
-
-class CryptocurrencyCreate(CryptocurrencyBase):
+class CryptocurrencyCreate(BaseModel):
     """
     Model for creating a new cryptocurrency
+    Supports both CoinGecko and custom cryptocurrencies
     """
-    pass
+    name: str = Field(..., min_length=1, max_length=100)
+    symbol: str = Field(..., min_length=1, max_length=10)
+    coingecko_id: Optional[str] = None
+    current_price: Optional[float] = Field(None, gt=0)
+    market_cap: Optional[float] = Field(None, gt=0)
 
-class CryptocurrencyUpdate(CryptocurrencyBase):
+    @validator('symbol')
+    def uppercase_symbol(cls, symbol):
+        """
+        Convert symbol to uppercase
+        """
+        return symbol.upper()
+
+    @validator('current_price', 'market_cap', always=True)
+    def validate_custom_crypto(cls, v, values):
+        """
+        Validate price and market cap for custom cryptocurrencies
+        """
+        # If no CoinGecko ID, require both price and market cap
+        if not values.get('coingecko_id'):
+            if v is None:
+                raise ValueError("Custom cryptocurrencies must provide current price and market cap")
+        return v
+
+    class Config:
+        """
+        Pydantic configuration
+        """
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "name": "Bitcoin",
+                "symbol": "BTC",
+                "coingecko_id": "bitcoin",  # Optional
+                "current_price": 50000,  # Optional for CoinGecko cryptocurrencies
+                "market_cap": 1000000000  # Optional for CoinGecko cryptocurrencies
+            }
+        }
+
+class CryptocurrencyUpdate(BaseModel):
     """
     Model for updating an existing cryptocurrency
     Allows partial updates with optional fields
@@ -36,12 +66,16 @@ class CryptocurrencyUpdate(CryptocurrencyBase):
     class Config:
         extra = "allow"
 
-class CryptocurrencyResponse(CryptocurrencyBase):
+class CryptocurrencyResponse(BaseModel):
     """
     Model for returning cryptocurrency data from database
     """
     id: int
+    name: str
+    symbol: str
     coingecko_id: Optional[str]
+    current_price: Optional[float]
+    market_cap: Optional[float]
     last_updated: Optional[float]
 
     class Config:

@@ -44,16 +44,17 @@ class CoinGeckoService:
                     # Market data from CoinGecko
                     market_data = coin_details.get('market_data', {})
                     
-                    # Prioritize user-provided values if available
-                    result_current_price = current_price or market_data.get('current_price', {}).get('usd', 0)
-                    result_market_cap = market_cap or market_data.get('market_cap', {}).get('usd', 0)
+                    # Get current price and market cap from CoinGecko
+                    coingecko_price = market_data.get('current_price', {}).get('usd', 0)
+                    coingecko_market_cap = market_data.get('market_cap', {}).get('usd', 0)
                     
                     return {
                         'coingecko_id': coin['id'],
                         'name': coin_details.get('name', coin['name']),
                         'symbol': symbol.upper(),
-                        'current_price': result_current_price,
-                        'market_cap': result_market_cap
+                        'current_price': coingecko_price,
+                        'market_cap': coingecko_market_cap,
+                        'in_coingecko': True
                     }
             
             # If no CoinGecko match found, but user provides price and market cap, allow custom cryptocurrency
@@ -63,7 +64,8 @@ class CoinGeckoService:
                     'name': symbol.upper(),
                     'symbol': symbol.upper(),
                     'current_price': current_price,
-                    'market_cap': market_cap
+                    'market_cap': market_cap,
+                    'in_coingecko': False
                 }
             
             # If no match and insufficient data
@@ -79,7 +81,8 @@ class CoinGeckoService:
                     'name': symbol.upper(),
                     'symbol': symbol.upper(),
                     'current_price': current_price,
-                    'market_cap': market_cap
+                    'market_cap': market_cap,
+                    'in_coingecko': False
                 }
             
             return None

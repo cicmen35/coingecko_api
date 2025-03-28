@@ -1,4 +1,3 @@
-import pytest
 from app.services.coingecko_service import CoinGeckoService
 
 def test_validate_cryptocurrency_valid_symbol():

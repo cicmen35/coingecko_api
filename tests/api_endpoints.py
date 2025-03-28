@@ -1,4 +1,3 @@
-import pytest
 from fastapi import status
 
 def test_create_cryptocurrency(test_client, test_db):
