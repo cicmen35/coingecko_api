@@ -10,8 +10,7 @@ class CoinGeckoService:
     """
     BASE_URL = "https://api.coingecko.com/api/v3"
 
-    @classmethod
-    def validate_cryptocurrency(cls, symbol: str, current_price: Optional[float] = None, market_cap: Optional[float] = None) -> Optional[Dict]:
+    def validate_cryptocurrency(self, symbol: str, current_price: Optional[float] = None, market_cap: Optional[float] = None) -> Optional[Dict]:
         """
         Validate cryptocurrency symbol and fetch details from CoinGecko
         
@@ -25,7 +24,7 @@ class CoinGeckoService:
         """
         try:
             # Search for cryptocurrency by symbol
-            search_url = f"{cls.BASE_URL}/search?query={symbol}"
+            search_url = f"{self.BASE_URL}/search?query={symbol}"
             response = requests.get(search_url)
             response.raise_for_status()
             
@@ -36,7 +35,7 @@ class CoinGeckoService:
             for coin in coins:
                 if coin['symbol'].lower() == symbol.lower():
                     # Fetch detailed coin information
-                    coin_url = f"{cls.BASE_URL}/coins/{coin['id']}"
+                    coin_url = f"{self.BASE_URL}/coins/{coin['id']}"
                     coin_response = requests.get(coin_url)
                     coin_response.raise_for_status()
                     coin_details = coin_response.json()
@@ -87,19 +86,14 @@ class CoinGeckoService:
             
             return None
 
-    @classmethod
-    def get_cryptocurrency_details(cls, coingecko_id: str) -> Optional[Dict]:
-        """
-        Fetch detailed cryptocurrency information
-        
-        Args:
-            coingecko_id (str): CoinGecko ID of the cryptocurrency
-        
-        Returns:
-            Dict with cryptocurrency details or None
+    def get_cryptocurrency_details(self, coingecko_id: str) -> Optional[Dict]:
+        """Fetch detailed information about a cryptocurrency from CoinGecko.
+
+        :param coingecko_id: str, CoinGecko ID of the cryptocurrency.
+        :return: Dict with cryptocurrency details or None if retrieval fails.
         """
         try:
-            coin_url = f"{cls.BASE_URL}/coins/{coingecko_id}"
+            coin_url = f"{self.BASE_URL}/coins/{coingecko_id}"
             coin_response = requests.get(coin_url)
             coin_response.raise_for_status()
             coin_details = coin_response.json()
@@ -117,20 +111,15 @@ class CoinGeckoService:
             logger.error(f"CoinGecko API request failed: {e}")
             return None
 
-    @classmethod
-    def get_top_cryptocurrencies(cls, limit: int = 10) -> List[Dict]:
-        """
-        Fetch top cryptocurrencies by market cap
-        
-        Args:
-            limit (int): Number of top cryptocurrencies to fetch
-        
-        Returns:
-            List of top cryptocurrencies with details
+    def get_top_cryptocurrencies(self, limit: int = 10) -> List[Dict]:
+        """Retrieve top cryptocurrencies by market cap from CoinGecko.
+
+        :param limit: int, number of top cryptocurrencies to retrieve.
+        :return: List of dictionaries containing top cryptocurrency details.
         """
         try:
             # Fetch top cryptocurrencies by market cap
-            markets_url = f"{cls.BASE_URL}/coins/markets"
+            markets_url = f"{self.BASE_URL}/coins/markets"
             params = {
                 'vs_currency': 'usd',
                 'order': 'market_cap_desc',
@@ -141,7 +130,6 @@ class CoinGeckoService:
             
             response = requests.get(markets_url, params=params)
             response.raise_for_status()
-            
             top_coins = response.json()
             
             return [
@@ -159,10 +147,10 @@ class CoinGeckoService:
             logger.error(f"CoinGecko API request failed: {e}")
             return []
 
-    @classmethod
-    def validate_cryptocurrency_with_coingecko(cls, symbol: str):
+    def validate_cryptocurrency_with_coingecko(self, symbol: str) -> Optional[Dict]:
+        """Validate cryptocurrency symbol using CoinGecko API.
+
+        :param symbol: str, cryptocurrency symbol to validate.
+        :return: Dict with cryptocurrency details or None if validation fails.
         """
-        Validate cryptocurrency symbol using CoinGecko API
-        Returns CoinGecko cryptocurrency details if valid
-        """
-        return cls.validate_cryptocurrency(symbol)
+        return self.validate_cryptocurrency(symbol)

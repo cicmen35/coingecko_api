@@ -7,11 +7,5 @@ pydantic
 requests
 apscheduler
 python-dotenv
-
-# development and testing
-pytest
-httpx
-loguru
-
 streamlit
 pandas

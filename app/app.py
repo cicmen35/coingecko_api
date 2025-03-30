@@ -4,11 +4,12 @@ from sqlalchemy import or_
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
-
-from .db import engine, Base, get_db
-from .models import CryptocurrencyDB
+from typing import Optional, Dict
+import time
+    
+from .database import engine, Base, get_db, CryptocurrencyDB
 from .schemas import CryptocurrencyCreate, CryptocurrencyUpdate, CryptocurrencyResponse
-from .services.coingecko_service import CoinGeckoService
+from .services.create_api_service import CoinGeckoService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,78 +24,74 @@ app = FastAPI(
     description="CRUD operations for cryptocurrency records"
 )
 
-def validate_cryptocurrency_with_coingecko(symbol: str):
-    """
-    Validate cryptocurrency symbol using CoinGecko API
-    Returns CoinGecko cryptocurrency details if valid
-    """
-    return CoinGeckoService.validate_cryptocurrency(symbol)
+def validate_cryptocurrency_with_coingecko(symbol: str) -> Optional[Dict]:
+    """Validate cryptocurrency symbol using CoinGecko API.
 
-def auto_refresh_cryptocurrencies():
+    :param symbol: str, cryptocurrency symbol to validate.
+    :return: CoinGecko cryptocurrency details if valid, None otherwise.
     """
-    Automatically refresh all stored cryptocurrencies
-    Runs as a background task
+    service = CoinGeckoService()
+    return service.validate_cryptocurrency(symbol)
+
+def auto_refresh_cryptocurrencies() -> None:
+    """Automatically refresh cryptocurrency data in the database.
+
+    :return: None
     """
     logger.info("Starting automatic cryptocurrency data refresh")
     db = next(get_db())
     
     try:
-        # Fetch all cryptocurrencies
+        # Retrieve all stored cryptocurrencies
         cryptocurrencies = db.query(CryptocurrencyDB).all()
-        updated_count = 0
-        failed_count = 0
         
         for crypto in cryptocurrencies:
             try:
                 if crypto.coingecko_id:
                     # Use CoinGecko service to get updated details
-                    details = CoinGeckoService.get_cryptocurrency_details(crypto.coingecko_id)
+                    service = CoinGeckoService()
+                    details = service.get_cryptocurrency_details(crypto.coingecko_id)
                     
                     if details:
                         # Update cryptocurrency data
-                        crypto.current_price = details.get('current_price', crypto.current_price)
-                        crypto.market_cap = details.get('market_cap', crypto.market_cap)
-                        crypto.last_updated = details.get('last_updated')
+                        crypto.current_price = details.get('current_price')
+                        crypto.market_cap = details.get('market_cap')
+                        crypto.last_updated = time.time()
                         
-                        updated_count += 1
+                        db.commit()
+                        logger.info(f"Updated {crypto.symbol} with new details")
+            
             except Exception as e:
-                logger.warning(f"Failed to update cryptocurrency {crypto.symbol}: {e}")
-                failed_count += 1
+                logger.error(f"Error updating {crypto.symbol}: {e}")
+                db.rollback()
         
-        # Commit all changes
-        db.commit()
-        
-        logger.info(f"Automatic refresh completed. Updated: {updated_count}, Failed: {failed_count}")
-    
-    except Exception as e:
-        logger.error(f"Error in auto-refresh process: {e}")
+        logger.info("Cryptocurrency data refresh completed")
     
     finally:
         db.close()
 
-# Create scheduler
+# Scheduler for auto-refresh
 scheduler = BackgroundScheduler()
 scheduler.add_job(
     auto_refresh_cryptocurrencies, 
-    trigger=IntervalTrigger(hours=1),  # Refresh every hour
-    id='cryptocurrency_auto_refresh',
-    max_instances=1,
-    replace_existing=True
+    IntervalTrigger(hours=24)  # Run every 24 hours
 )
 
 # Startup and Shutdown Events
 @app.on_event("startup")
-async def startup_event():
-    """
-    Start the background scheduler when the application starts
+async def startup_event() -> None:
+    """Start the background scheduler when the application starts.
+
+    :return: None
     """
     scheduler.start()
     logger.info("Cryptocurrency auto-refresh scheduler started")
 
 @app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Shutdown the background scheduler when the application stops
+async def shutdown_event() -> None:
+    """Shutdown the background scheduler when the application stops.
+
+    :return: None
     """
     scheduler.shutdown()
     logger.info("Cryptocurrency auto-refresh scheduler stopped")
@@ -105,15 +102,11 @@ def create_cryptocurrency(
     cryptocurrency: CryptocurrencyCreate, 
     db: Session = Depends(get_db)
 ):
-    """
-    Create a new cryptocurrency
-    
-    Args:
-        cryptocurrency (CryptocurrencyCreate): Cryptocurrency details
-        db (Session): Database session
-    
-    Returns:
-        CryptocurrencyDB: Created cryptocurrency
+    """Create a new cryptocurrency.
+
+    :param cryptocurrency: CryptocurrencyCreate, cryptocurrency details.
+    :param db: Session, database session.
+    :return: CryptocurrencyDB, created cryptocurrency.
     """
     try:
         # Check if the cryptocurrency is a custom one or needs CoinGecko validation
@@ -134,7 +127,8 @@ def create_cryptocurrency(
             )
         else:
             # Validate cryptocurrency details using CoinGecko
-            validated_crypto = CoinGeckoService.validate_cryptocurrency(
+            service = CoinGeckoService()
+            validated_crypto = service.validate_cryptocurrency(
                 symbol=cryptocurrency.symbol, 
                 current_price=cryptocurrency.current_price, 
                 market_cap=cryptocurrency.market_cap
@@ -187,8 +181,12 @@ def list_cryptocurrencies(
     limit: int = 100, 
     db: Session = Depends(get_db)
 ):
-    """
-    Retrieve a list of cryptocurrencies with optional pagination
+    """Retrieve a list of cryptocurrencies with optional pagination.
+
+    :param skip: int, number of records to skip.
+    :param limit: int, number of records to return.
+    :param db: Session, database session.
+    :return: list[CryptocurrencyDB], list of cryptocurrencies.
     """
     cryptocurrencies = db.query(CryptocurrencyDB).offset(skip).limit(limit).all()
     return cryptocurrencies
@@ -199,8 +197,11 @@ def get_cryptocurrency(
     cryptocurrency_id: int, 
     db: Session = Depends(get_db)
 ):
-    """
-    Retrieve a specific cryptocurrency by its ID
+    """Retrieve a specific cryptocurrency by its ID.
+
+    :param cryptocurrency_id: int, ID of the cryptocurrency.
+    :param db: Session, database session.
+    :return: CryptocurrencyDB, cryptocurrency.
     """
     cryptocurrency = db.query(CryptocurrencyDB).filter(CryptocurrencyDB.id == cryptocurrency_id).first()
     
@@ -216,8 +217,12 @@ def update_cryptocurrency(
     cryptocurrency: CryptocurrencyUpdate, 
     db: Session = Depends(get_db)
 ):
-    """
-    Update an existing cryptocurrency
+    """Update an existing cryptocurrency.
+
+    :param cryptocurrency_id: int, ID of the cryptocurrency.
+    :param cryptocurrency: CryptocurrencyUpdate, updated cryptocurrency details.
+    :param db: Session, database session.
+    :return: CryptocurrencyDB, updated cryptocurrency.
     """
     # Find the existing cryptocurrency
     db_crypto = db.query(CryptocurrencyDB).filter(CryptocurrencyDB.id == cryptocurrency_id).first()
@@ -257,8 +262,11 @@ def delete_cryptocurrency(
     cryptocurrency_id: int, 
     db: Session = Depends(get_db)
 ):
-    """
-    Delete a specific cryptocurrency by its ID
+    """Delete a specific cryptocurrency by its ID.
+
+    :param cryptocurrency_id: int, ID of the cryptocurrency.
+    :param db: Session, database session.
+    :return: CryptocurrencyDB, deleted cryptocurrency.
     """
     # Find the existing cryptocurrency
     db_crypto = db.query(CryptocurrencyDB).filter(CryptocurrencyDB.id == cryptocurrency_id).first()

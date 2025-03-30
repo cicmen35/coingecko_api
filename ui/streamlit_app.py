@@ -5,9 +5,10 @@ import pandas as pd
 # API Base URL
 BASE_URL = "http://localhost:8000"
 
-def create_cryptocurrency(): 
-    """
-    Streamlit form for creating a new cryptocurrency
+def create_cryptocurrency() -> None:
+    """Create a new cryptocurrency entry in the database.
+
+    :return: None, displays Streamlit notification about creation status.
     """
     st.header("Create cryptocurrency")
     
@@ -40,9 +41,10 @@ def create_cryptocurrency():
             except requests.exceptions.RequestException as e:
                 st.error(f"Connection error: {e}")
 
-def list_cryptocurrencies():
-    """
-    Display list of cryptocurrencies with update and delete options
+def list_cryptocurrencies() -> None:
+    """List all cryptocurrencies from the database.
+
+    :return: None, displays cryptocurrencies in Streamlit table.
     """
     st.header("List cryptocurrencies")
     
@@ -76,7 +78,7 @@ def list_cryptocurrencies():
             with col1:
                 if st.button("Update cryptocurrency"):
                     st.session_state.update_crypto_id = selected_crypto
-                    st.experimental_rerun()
+                    st.rerun()
             
             with col2:
                 if st.button("Delete cryptocurrency"):
@@ -90,9 +92,11 @@ def list_cryptocurrencies():
     except Exception as e:
         st.error(f"Unexpected error: {e}")
 
-def update_cryptocurrency(crypto_id):
-    """
-    Streamlit form for updating a cryptocurrency
+def update_cryptocurrency(crypto_id: int) -> None:
+    """Update an existing cryptocurrency entry.
+
+    :param crypto_id: int, ID of the cryptocurrency to update.
+    :return: None, displays Streamlit notification about update status.
     """
     st.header("Update cryptocurrency")
     
@@ -148,9 +152,11 @@ def update_cryptocurrency(crypto_id):
     except requests.exceptions.RequestException as e:
         st.error(f"Connection error: {e}")
 
-def delete_cryptocurrency(crypto_id):
-    """
-    Delete a cryptocurrency
+def delete_cryptocurrency(crypto_id: int) -> None:
+    """Delete a cryptocurrency entry from the database.
+
+    :param crypto_id: int, ID of the cryptocurrency to delete.
+    :return: None, displays Streamlit notification about deletion status.
     """
     try:
         response = requests.delete(f"{BASE_URL}/cryptocurrencies/{crypto_id}")
@@ -164,9 +170,10 @@ def delete_cryptocurrency(crypto_id):
     except requests.exceptions.RequestException as e:
         st.error(f"Connection error: {e}")
 
-def main():
-    """
-    Main Streamlit application
+def main() -> None:
+    """Main Streamlit application entry point.
+
+    :return: None, sets up Streamlit UI and navigation.
     """
     st.title("Cryptocurrency database manager")
     

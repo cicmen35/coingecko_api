@@ -1,45 +1,35 @@
-# CoinGecko API cryptocurrency manager
+# Coingecko api manager
 
 ## Overview
-A robust FastAPI application for managing cryptocurrency data with real-time updates from CoinGecko.
+FastAPI application for managing cryptocurrency data in database with real-time updates from CoinGecko.
+
+## Prerequisites
+- Python 3.10+
+- PostgreSQL
+- pip
 
 ## Installation
-1. Clone the repository
-2. Create a virtual environment
+Clone the repository
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up database
-```bash
-# Configure your PostgreSQL database in .env
-createdb coingecko_api
+git clone https://github.com/cicmen35/coingecko_api.git
+cd coingecko_api
 ```
 
 ## Running the Application
-
-### API Server
+To set up the environment and start the application, use the provided shell script:
 ```bash
-python run.py
-```
-The API will be available at `http://localhost:8000`
-
-### Streamlit UI
-```bash
-streamlit run streamlit_app.py
-```
-The Streamlit UI will open in your default web browser
-
-## Testing
-```bash
-pytest tests/
+./start_app.sh
 ```
 
-## License
-MIT License
+This script will:
+- Create and activate a virtual environment
+- Install required dependencies
+- Set up the PostgreSQL database
+- Start the application with:
+  - FastAPI server at `http://localhost:8000`
+  - Streamlit UI at `http://localhost:8501`
+
+## Project Structure
+- `app/`: FastAPI application logic
+- `ui/`: Streamlit user interface
+- `requirements.txt`: Project dependencies
