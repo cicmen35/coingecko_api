@@ -1,0 +1,62 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coingecko_api
+    command: python -m uvicorn app.app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"  # FastAPI
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/coingecko_api
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coingecko_streamlit
+    command: streamlit run streamlit/app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"  # Streamlit
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/coingecko_api
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  db:
+    image: postgres:14
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coingecko_api
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  pg_data:
+
+networks:
+  app-network:
+    driver: bridge

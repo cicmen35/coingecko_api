@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
@@ -11,18 +10,23 @@ from .database import engine, Base, get_db, CryptocurrencyDB
 from .schemas import CryptocurrencyCreate, CryptocurrencyUpdate, CryptocurrencyResponse
 from .services.create_api_service import CoinGeckoService
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create database tables
 Base.metadata.create_all(bind=engine)
 
-# FastAPI App
 app = FastAPI(
     title="Cryptocurrency API", 
     description="CRUD operations for cryptocurrency records"
 )
+
+@app.get("/health", status_code=200)
+def health_check():
+    """Health check endpoint for container healthchecks.
+    
+    :return: Dict with status information
+    """
+    return {"status": "healthy"}
 
 def validate_cryptocurrency_with_coingecko(symbol: str) -> Optional[Dict]:
     """Validate cryptocurrency symbol using CoinGecko API.
@@ -42,18 +46,15 @@ def auto_refresh_cryptocurrencies() -> None:
     db = next(get_db())
     
     try:
-        # Retrieve all stored cryptocurrencies
         cryptocurrencies = db.query(CryptocurrencyDB).all()
         
         for crypto in cryptocurrencies:
             try:
                 if crypto.coingecko_id:
-                    # Use CoinGecko service to get updated details
                     service = CoinGeckoService()
                     details = service.get_cryptocurrency_details(crypto.coingecko_id)
                     
                     if details:
-                        # Update cryptocurrency data
                         crypto.current_price = details.get('current_price')
                         crypto.market_cap = details.get('market_cap')
                         crypto.last_updated = time.time()
@@ -70,14 +71,12 @@ def auto_refresh_cryptocurrencies() -> None:
     finally:
         db.close()
 
-# Scheduler for auto-refresh
 scheduler = BackgroundScheduler()
 scheduler.add_job(
     auto_refresh_cryptocurrencies, 
-    IntervalTrigger(hours=24)  # Run every 24 hours
+    IntervalTrigger(hours=24)  # run every 24 hours
 )
 
-# Startup and Shutdown Events
 @app.on_event("startup")
 async def startup_event() -> None:
     """Start the background scheduler when the application starts.
@@ -96,7 +95,6 @@ async def shutdown_event() -> None:
     scheduler.shutdown()
     logger.info("Cryptocurrency auto-refresh scheduler stopped")
 
-# Create a new cryptocurrency
 @app.post("/cryptocurrencies/", response_model=CryptocurrencyResponse)
 def create_cryptocurrency(
     cryptocurrency: CryptocurrencyCreate, 
@@ -109,16 +107,13 @@ def create_cryptocurrency(
     :return: CryptocurrencyDB, created cryptocurrency.
     """
     try:
-        # Check if the cryptocurrency is a custom one or needs CoinGecko validation
         if not cryptocurrency.coingecko_id:
-            # Validate custom cryptocurrency requires price and market cap
             if not (cryptocurrency.current_price and cryptocurrency.market_cap):
                 raise HTTPException(
                     status_code=400, 
                     detail="Custom cryptocurrencies must provide current price and market cap"
                 )
             
-            # Create new custom cryptocurrency
             new_crypto = CryptocurrencyDB(
                 name=cryptocurrency.name,
                 symbol=cryptocurrency.symbol,
@@ -126,7 +121,6 @@ def create_cryptocurrency(
                 market_cap=cryptocurrency.market_cap
             )
         else:
-            # Validate cryptocurrency details using CoinGecko
             service = CoinGeckoService()
             validated_crypto = service.validate_cryptocurrency(
                 symbol=cryptocurrency.symbol, 
@@ -140,7 +134,6 @@ def create_cryptocurrency(
                     detail=f"Cryptocurrency symbol {cryptocurrency.symbol} not found or invalid"
                 )
             
-            # Check for existing cryptocurrency
             existing_crypto = db.query(CryptocurrencyDB).filter(
                 (CryptocurrencyDB.symbol == validated_crypto['symbol']) | 
                 (CryptocurrencyDB.name == validated_crypto['name'])
@@ -152,7 +145,6 @@ def create_cryptocurrency(
                     detail=f"Cryptocurrency with symbol {validated_crypto['symbol']} already exists"
                 )
             
-            # Create new cryptocurrency from CoinGecko
             new_crypto = CryptocurrencyDB(
                 name=validated_crypto['name'],
                 symbol=validated_crypto['symbol'],
@@ -161,7 +153,6 @@ def create_cryptocurrency(
                 market_cap=validated_crypto['market_cap']
             )
         
-        # Add and commit
         db.add(new_crypto)
         db.commit()
         db.refresh(new_crypto)
@@ -174,7 +165,6 @@ def create_cryptocurrency(
         logger.error(f"Error creating cryptocurrency: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# List all cryptocurrencies
 @app.get("/cryptocurrencies/", response_model=list[CryptocurrencyResponse])
 def list_cryptocurrencies(
     skip: int = 0, 
@@ -191,7 +181,6 @@ def list_cryptocurrencies(
     cryptocurrencies = db.query(CryptocurrencyDB).offset(skip).limit(limit).all()
     return cryptocurrencies
 
-# Get a specific cryptocurrency by ID
 @app.get("/cryptocurrencies/{cryptocurrency_id}", response_model=CryptocurrencyResponse)
 def get_cryptocurrency(
     cryptocurrency_id: int, 
@@ -210,7 +199,6 @@ def get_cryptocurrency(
     
     return cryptocurrency
 
-# Update a cryptocurrency
 @app.put("/cryptocurrencies/{cryptocurrency_id}", response_model=CryptocurrencyResponse)
 def update_cryptocurrency(
     cryptocurrency_id: int, 
@@ -224,13 +212,11 @@ def update_cryptocurrency(
     :param db: Session, database session.
     :return: CryptocurrencyDB, updated cryptocurrency.
     """
-    # Find the existing cryptocurrency
     db_crypto = db.query(CryptocurrencyDB).filter(CryptocurrencyDB.id == cryptocurrency_id).first()
     
     if not db_crypto:
         raise HTTPException(status_code=404, detail="Cryptocurrency not found")
     
-    # Check for unique constraints if name or symbol are being updated
     if cryptocurrency.name:
         existing_name = db.query(CryptocurrencyDB).filter(
             (CryptocurrencyDB.name == cryptocurrency.name) & 
@@ -247,7 +233,6 @@ def update_cryptocurrency(
         if existing_symbol:
             raise HTTPException(status_code=400, detail="Cryptocurrency symbol already exists")
     
-    # Update fields
     update_data = cryptocurrency.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_crypto, key, value)
@@ -256,7 +241,6 @@ def update_cryptocurrency(
     db.refresh(db_crypto)
     return db_crypto
 
-# Delete a cryptocurrency
 @app.delete("/cryptocurrencies/{cryptocurrency_id}", response_model=CryptocurrencyResponse)
 def delete_cryptocurrency(
     cryptocurrency_id: int, 
@@ -268,13 +252,11 @@ def delete_cryptocurrency(
     :param db: Session, database session.
     :return: CryptocurrencyDB, deleted cryptocurrency.
     """
-    # Find the existing cryptocurrency
     db_crypto = db.query(CryptocurrencyDB).filter(CryptocurrencyDB.id == cryptocurrency_id).first()
     
     if not db_crypto:
         raise HTTPException(status_code=404, detail="Cryptocurrency not found")
     
-    # Delete the cryptocurrency
     db.delete(db_crypto)
     db.commit()
     

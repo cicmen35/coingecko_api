@@ -32,7 +32,7 @@ class CryptocurrencyCreate(BaseModel):
         """
         Validate price and market cap for custom cryptocurrencies
         """
-        # If no CoinGecko ID, require both price and market cap
+        
         if not values.get('coingecko_id'):
             if v is None:
                 raise ValueError("Custom cryptocurrencies must provide current price and market cap")
@@ -47,9 +47,9 @@ class CryptocurrencyCreate(BaseModel):
             "example": {
                 "name": "Bitcoin",
                 "symbol": "BTC",
-                "coingecko_id": "bitcoin",  # Optional
-                "current_price": 50000,  # Optional for CoinGecko cryptocurrencies
-                "market_cap": 1000000000  # Optional for CoinGecko cryptocurrencies
+                "coingecko_id": "bitcoin",  
+                "current_price": 50000,  
+                "market_cap": 1000000000  
             }
         }
 
@@ -84,7 +84,7 @@ class CryptocurrencyResponse(BaseModel):
 class CryptocurrencyListResponse(BaseModel):
     """
     Model for returning a list of cryptocurrency data from database
-    """
+    """    
     data: List[CryptocurrencyResponse]
 
     class Config:

@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 
-# API Base URL
-BASE_URL = "http://localhost:8000"
+# Use the service name from docker-compose as the hostname
+BASE_URL = "http://api:8000"
 
 def create_cryptocurrency() -> None:
     """Create a new cryptocurrency entry in the database.
@@ -54,25 +54,20 @@ def list_cryptocurrencies() -> None:
         if response.status_code == 200:
             cryptocurrencies = response.json()
             
-            # Check if the list is empty
             if not cryptocurrencies:
                 st.info("No cryptocurrencies found. Create a cryptocurrency!")
                 return
             
-            # Convert to DataFrame for better display
             df = pd.DataFrame(cryptocurrencies)
             
-            # Display table
             st.dataframe(df)
             
-            # Select cryptocurrency for update/delete
             selected_crypto = st.selectbox(
                 "Select cryptocurrency", 
                 options=df['id'].tolist(),
                 format_func=lambda x: df[df['id'] == x]['name'].values[0]
             )
             
-            # Update or Delete buttons
             col1, col2 = st.columns(2)
             
             with col1:
@@ -101,7 +96,6 @@ def update_cryptocurrency(crypto_id: int) -> None:
     st.header("Update cryptocurrency")
     
     try:
-        # Fetch current cryptocurrency details
         response = requests.get(f"{BASE_URL}/cryptocurrencies/{crypto_id}")
         
         if response.status_code == 200:
@@ -177,13 +171,11 @@ def main() -> None:
     """
     st.title("Cryptocurrency database manager")
     
-    # Sidebar navigation
     page = st.sidebar.selectbox(
         "Choose a page", 
         ["Create cryptocurrency", "List cryptocurrencies"]
     )
     
-    # Check if we're in update mode from a previous state
     if hasattr(st.session_state, 'update_crypto_id'):
         update_cryptocurrency(st.session_state.update_crypto_id)
         del st.session_state.update_crypto_id
