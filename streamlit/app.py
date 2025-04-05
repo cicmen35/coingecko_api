@@ -1,8 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-
-# Use the service name from docker-compose as the hostname
+    
 BASE_URL = "http://api:8000"
 
 def create_cryptocurrency() -> None:

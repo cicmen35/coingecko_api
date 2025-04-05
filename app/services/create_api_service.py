@@ -56,7 +56,6 @@ class CoinGeckoService:
                         'in_coingecko': True
                     }
             
-            # If no CoinGecko match found, but user provides price and market cap, allow custom cryptocurrency
             if current_price is not None and market_cap is not None:
                 return {
                     'coingecko_id': None,
@@ -67,13 +66,11 @@ class CoinGeckoService:
                     'in_coingecko': False
                 }
             
-            # If no match and insufficient data
             return None
         
         except requests.RequestException as e:
             logger.error(f"CoinGecko API request failed: {e}")
             
-            # If API fails, use user-provided values
             if current_price is not None and market_cap is not None:
                 return {
                     'coingecko_id': None,
@@ -118,7 +115,6 @@ class CoinGeckoService:
         :return: List of dictionaries containing top cryptocurrency details.
         """
         try:
-            # Fetch top cryptocurrencies by market cap
             markets_url = f"{self.BASE_URL}/coins/markets"
             params = {
                 'vs_currency': 'usd',
