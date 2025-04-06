@@ -6,11 +6,11 @@ import logging
 from typing import Optional, Dict
 import time
     
-from .database import engine, Base, get_db, CryptocurrencyDB
-from .schemas import CryptocurrencyCreate, CryptocurrencyUpdate, CryptocurrencyResponse
-from .services.create_api_service import CoinGeckoService
+from app.database import engine, Base, get_db, CryptocurrencyDB
+from app.schemas import CryptocurrencyCreate, CryptocurrencyUpdate, CryptocurrencyResponse
+from app.services.create_api_service import CoinGeckoService
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
@@ -99,7 +99,7 @@ async def shutdown_event() -> None:
 def create_cryptocurrency(
     cryptocurrency: CryptocurrencyCreate, 
     db: Session = Depends(get_db)
-):
+) -> CryptocurrencyDB:
     """Create a new cryptocurrency.
 
     :param cryptocurrency: CryptocurrencyCreate, cryptocurrency details.
@@ -170,7 +170,7 @@ def list_cryptocurrencies(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db)
-):
+) -> list[CryptocurrencyDB]:
     """Retrieve a list of cryptocurrencies with optional pagination.
 
     :param skip: int, number of records to skip.
@@ -185,7 +185,7 @@ def list_cryptocurrencies(
 def get_cryptocurrency(
     cryptocurrency_id: int, 
     db: Session = Depends(get_db)
-):
+) -> CryptocurrencyDB:
     """Retrieve a specific cryptocurrency by its ID.
 
     :param cryptocurrency_id: int, ID of the cryptocurrency.
@@ -204,7 +204,7 @@ def update_cryptocurrency(
     cryptocurrency_id: int, 
     cryptocurrency: CryptocurrencyUpdate, 
     db: Session = Depends(get_db)
-):
+) -> CryptocurrencyDB:
     """Update an existing cryptocurrency.
 
     :param cryptocurrency_id: int, ID of the cryptocurrency.
@@ -245,7 +245,7 @@ def update_cryptocurrency(
 def delete_cryptocurrency(
     cryptocurrency_id: int, 
     db: Session = Depends(get_db)
-):
+) -> CryptocurrencyDB:
     """Delete a specific cryptocurrency by its ID.
 
     :param cryptocurrency_id: int, ID of the cryptocurrency.

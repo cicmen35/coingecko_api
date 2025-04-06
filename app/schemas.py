@@ -1,36 +1,39 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
 class CryptocurrencyBase(BaseModel):
-    """
-    Base model for cryptocurrency data validation
-    """
+    """Base model for cryptocurrency data validation."""
     name: str = Field(..., min_length=1, max_length=100)
     symbol: str = Field(..., min_length=1, max_length=10)
     coingecko_id: Optional[str] = None
 
 class CryptocurrencyCreate(BaseModel):
-    """
-    Model for creating a new cryptocurrency
+    """Model for creating a new cryptocurrency
     Supports both CoinGecko and custom cryptocurrencies
     """
     name: str = Field(..., min_length=1, max_length=100)
-    symbol: str = Field(..., min_length=1, max_length=10)
+    symbol: str = Field(..., min_length=1, max_length=10)   
     coingecko_id: Optional[str] = None
     current_price: Optional[float] = Field(None, gt=0)
     market_cap: Optional[float] = Field(None, gt=0)
 
-    @validator('symbol')
+    @field_validator('symbol')
     def uppercase_symbol(cls, symbol):
-        """
-        Convert symbol to uppercase
+        """Convert symbol to uppercase.
+        
+        :param symbol: str, cryptocurrency symbol.
+        :return: str, uppercase cryptocurrency symbol.
         """
         return symbol.upper()
 
-    @validator('current_price', 'market_cap', always=True)
+    @field_validator('current_price', 'market_cap', always=True)
     def validate_custom_crypto(cls, v, values):
-        """
-        Validate price and market cap for custom cryptocurrencies
+        """Validate price and market cap for custom cryptocurrencies.
+        
+        :param v: float, current price or market cap.
+        :param values: dict, other cryptocurrency attributes.
+        :return: float, validated price or market cap.
+        :raises ValueError: if custom cryptocurrency is missing price or market cap.
         """
         
         if not values.get('coingecko_id'):
@@ -39,9 +42,7 @@ class CryptocurrencyCreate(BaseModel):
         return v
 
     class Config:
-        """
-        Pydantic configuration
-        """
+        """Pydantic configuration."""
         orm_mode = True
         schema_extra = {
             "example": {
@@ -54,10 +55,8 @@ class CryptocurrencyCreate(BaseModel):
         }
 
 class CryptocurrencyUpdate(BaseModel):
-    """
-    Model for updating an existing cryptocurrency
-    Allows partial updates with optional fields
-    """
+    """Model for updating an existing cryptocurrency. 
+    Allows partial updates with optional fields."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     symbol: Optional[str] = Field(None, min_length=1, max_length=10)
     current_price: Optional[float] = Field(None, gt=0)
@@ -67,9 +66,7 @@ class CryptocurrencyUpdate(BaseModel):
         extra = "allow"
 
 class CryptocurrencyResponse(BaseModel):
-    """
-    Model for returning cryptocurrency data from database
-    """
+    """Model for returning cryptocurrency data from database."""
     id: int
     name: str
     symbol: str
@@ -82,9 +79,7 @@ class CryptocurrencyResponse(BaseModel):
         orm_mode = True
 
 class CryptocurrencyListResponse(BaseModel):
-    """
-    Model for returning a list of cryptocurrency data from database
-    """    
+    """Model for returning a list of cryptocurrency data from database."""    
     data: List[CryptocurrencyResponse]
 
     class Config:

@@ -33,9 +33,7 @@ def get_db():
 
 
 class CryptocurrencyDB(Base):
-    """
-    SQLAlchemy model for storing cryptocurrency information
-    """
+    """SQLAlchemy model for storing cryptocurrency information."""
     __tablename__ = "cryptocurrencies"
     
     id = Column(Integer, primary_key=True, index=True)

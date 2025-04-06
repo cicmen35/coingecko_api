@@ -5,45 +5,34 @@ from typing import Dict, Optional, List
 logger = logging.getLogger(__name__)
 
 class CoinGeckoService:
-    """
-    Service for interacting with CoinGecko API
-    """
+    """Service for interacting with CoinGecko API."""
     BASE_URL = "https://api.coingecko.com/api/v3"
 
-    def validate_cryptocurrency(self, symbol: str, current_price: Optional[float] = None, market_cap: Optional[float] = None) -> Optional[Dict]:
-        """
-        Validate cryptocurrency symbol and fetch details from CoinGecko
-        
-        Args:
-            symbol (str): Cryptocurrency symbol
-            current_price (float, optional): User-provided current price
-            market_cap (float, optional): User-provided market cap
-        
-        Returns:
-            Dict with cryptocurrency details or None
+    def _validate_cryptocurrency(self, symbol: str, current_price: Optional[float] = None, market_cap: Optional[float] = None) -> Optional[Dict]:
+        """Validate cryptocurrency symbol and fetch details from CoinGecko
+
+        :param symbol: str, cryptocurrency symbol.
+        :param current_price: float, optional, user-provided current price.
+        :param market_cap: float, optional, user-provided market cap.
+        :return: Dict with cryptocurrency details or None
         """
         try:
-            # Search for cryptocurrency by symbol
             search_url = f"{self.BASE_URL}/search?query={symbol}"
             response = requests.get(search_url)
             response.raise_for_status()
             
             search_results = response.json()
             
-            # Find exact symbol match
             coins = search_results.get('coins', [])
             for coin in coins:
                 if coin['symbol'].lower() == symbol.lower():
-                    # Fetch detailed coin information
                     coin_url = f"{self.BASE_URL}/coins/{coin['id']}"
                     coin_response = requests.get(coin_url)
                     coin_response.raise_for_status()
                     coin_details = coin_response.json()
                     
-                    # Market data from CoinGecko
                     market_data = coin_details.get('market_data', {})
                     
-                    # Get current price and market cap from CoinGecko
                     coingecko_price = market_data.get('current_price', {}).get('usd', 0)
                     coingecko_market_cap = market_data.get('market_cap', {}).get('usd', 0)
                     
@@ -87,6 +76,7 @@ class CoinGeckoService:
         """Fetch detailed information about a cryptocurrency from CoinGecko.
 
         :param coingecko_id: str, CoinGecko ID of the cryptocurrency.
+        :exception: requests.exceptions.RequestException if the request fails.
         :return: Dict with cryptocurrency details or None if retrieval fails.
         """
         try:
@@ -114,39 +104,34 @@ class CoinGeckoService:
         :param limit: int, number of top cryptocurrencies to retrieve.
         :return: List of dictionaries containing top cryptocurrency details.
         """
-        try:
-            markets_url = f"{self.BASE_URL}/coins/markets"
-            params = {
-                'vs_currency': 'usd',
-                'order': 'market_cap_desc',
-                'per_page': limit,
-                'page': 1,
-                'sparkline': False
-            }
-            
-            response = requests.get(markets_url, params=params)
-            response.raise_for_status()
-            top_coins = response.json()
-            
-            return [
-                {
-                    'name': coin['name'],
-                    'symbol': coin['symbol'].upper(),
-                    'current_price': coin['current_price'],
-                    'market_cap': coin['market_cap'],
-                    'coingecko_id': coin['id']
-                }
-                for coin in top_coins
-            ]
+        markets_url = f"{self.BASE_URL}/coins/markets"
+        params = {
+            'vs_currency': 'usd',
+            'order': 'market_cap_desc',
+            'per_page': limit,
+            'page': 1,
+            'sparkline': False
+        }
         
-        except requests.RequestException as e:
-            logger.error(f"CoinGecko API request failed: {e}")
-            return []
+        response = requests.get(markets_url, params=params)
+        response.raise_for_status()
+        top_coins = response.json()
+        
+        return [
+            {
+                'name': coin['name'],
+                'symbol': coin['symbol'].upper(),
+                'current_price': coin['current_price'],
+                'market_cap': coin['market_cap'],
+                'coingecko_id': coin['id']
+            }
+            for coin in top_coins
+        ]
 
-    def validate_cryptocurrency_with_coingecko(self, symbol: str) -> Optional[Dict]:
+    def validate_cryptocurrency(self, symbol: str) -> Optional[Dict]:
         """Validate cryptocurrency symbol using CoinGecko API.
 
         :param symbol: str, cryptocurrency symbol to validate.
         :return: Dict with cryptocurrency details or None if validation fails.
         """
-        return self.validate_cryptocurrency(symbol)
+        return self._validate_cryptocurrency(symbol)

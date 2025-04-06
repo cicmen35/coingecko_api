@@ -6,6 +6,5 @@ alembic
 pydantic
 requests
 apscheduler
-python-dotenv
 streamlit
 pandas

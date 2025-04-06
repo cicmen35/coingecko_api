@@ -24,7 +24,7 @@ def run_streamlit() -> None:
     :return: None, runs Streamlit application.
     """
     subprocess.run([
-        "streamlit", "run", "streamlit/app.py", 
+        "streamlit", "run", "client/app.py", 
         "--server.port", "8501"
     ])
 
@@ -34,9 +34,6 @@ def wait_for_database() -> None:
     :return: None
     """
     db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/coingecko_api")
-    
-    # Extract connection parameters from the URL
-    # Format: postgresql://user:password@host:port/dbname
     db_parts = db_url.replace("postgresql://", "").split("/")
     db_name = db_parts[1] if len(db_parts) > 1 else "postgres"
     conn_parts = db_parts[0].split("@")
@@ -54,7 +51,6 @@ def wait_for_database() -> None:
     print(f"Waiting for database at {host}:{port}...")
     for i in range(max_retries):
         try:
-            # Try to connect to postgres database first if the actual DB doesn't exist yet
             try:
                 conn = psycopg2.connect(
                     dbname=db_name,
@@ -62,11 +58,10 @@ def wait_for_database() -> None:
                     password=password,
                     host=host,
                     port=port,
-                    connect_timeout=5  # Add connection timeout
+                    connect_timeout=5  
                 )
             except psycopg2.OperationalError as e:
                 if "does not exist" in str(e):
-                    # Try connecting to postgres database instead
                     conn = psycopg2.connect(
                         dbname="postgres",
                         user=user,
@@ -75,7 +70,6 @@ def wait_for_database() -> None:
                         port=port,
                         connect_timeout=5
                     )
-                    # Create the database if it doesn't exist
                     conn.autocommit = True
                     cursor = conn.cursor()
                     cursor.execute(f"CREATE DATABASE {db_name}")
@@ -99,7 +93,6 @@ def main() -> None:
 
     :return: None, runs applications concurrently.
     """
-    # Wait for the database to be ready
     wait_for_database()
     
     multiprocessing.set_start_method('spawn')
