@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 
 class CryptocurrencyBase(BaseModel):
@@ -17,7 +17,7 @@ class CryptocurrencyCreate(BaseModel):
     current_price: Optional[float] = Field(None, gt=0)
     market_cap: Optional[float] = Field(None, gt=0)
 
-    @field_validator('symbol')
+    @validator('symbol')
     def uppercase_symbol(cls, symbol):
         """Convert symbol to uppercase.
         
@@ -26,7 +26,7 @@ class CryptocurrencyCreate(BaseModel):
         """
         return symbol.upper()
 
-    @field_validator('current_price', 'market_cap', always=True)
+    @validator('current_price', 'market_cap', always=True)
     def validate_custom_crypto(cls, v, values):
         """Validate price and market cap for custom cryptocurrencies.
         
