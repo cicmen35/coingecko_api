@@ -11,16 +11,6 @@ FastAPI application for managing cryptocurrency data in database with real-time 
 - User-friendly Streamlit interface
 - RESTful API with FastAPI
 
-## Prerequisites
-- Docker and Docker Compose
-
-## Installation
-Clone the repository
-```bash
-git clone https://github.com/cicmen35/coingecko_api.git
-cd coingecko_api
-```
-
 ## Running with Docker
 The application is fully dockerized with separate containers for the API, Streamlit and PostgreSQL.
 
@@ -37,15 +27,6 @@ This will start:
 - Streamlit UI at `http://localhost:8501`
 - PostgreSQL database
 
-To stop the application:
-```bash
-docker-compose down
-```
-
-To remove all data and start fresh:
-```bash
-docker-compose down -v
-```
 
 ## API Documentation
 Once the application is running, you can access the API documentation at:
@@ -57,7 +38,7 @@ Once the application is running, you can access the API documentation at:
   - `app.py`: Main FastAPI application
   - `database.py`: Database models and connection
   - `services/`: Business logic and external API integration
-- `streamlit/`: Streamlit user interface
+- `client/`: Streamlit user interface
   - `app.py`: Streamlit application
 - `main.py`: Application entry point for running both FastAPI and Streamlit
 - `Dockerfile`: Container configuration
